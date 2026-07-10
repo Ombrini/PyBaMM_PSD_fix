@@ -65,7 +65,7 @@ class BaseInverseKinetics(BaseInterface):
 
         # With SEI resistance (distributed and averaged have the same effect here)
         if self.options["SEI film resistance"] != "none":
-            R_sei = self.phase_param.R_sei
+            R_sei = self.phase_param.R_sei(T)
             if self.options.electrode_types[domain] == "planar":
                 L_sei = variables[f"{Domain} SEI thickness [m]"]
             else:
