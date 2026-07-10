@@ -123,40 +123,6 @@ class BaseKinetics(BaseInterface):
         j_tot_av, a_j_tot_av = self._get_average_total_interfacial_current_density(
             variables
         )
-        # Add SEI resistance
-        if self.options.electrode_types[domain] == "planar":
-            R_sei = self.phase_param.R_sei
-            L_sei = variables[f"{Domain} {phase_name}SEI thickness [m]"]  # on interface
-            eta_sei = -j_tot_av * L_sei * R_sei
-        elif self.options["SEI film resistance"] == "average":
-            R_sei = self.phase_param.R_sei
-            L_sei_av = variables[f"X-averaged {domain} {phase_name}SEI thickness [m]"]
-            eta_sei = -j_tot_av * L_sei_av * R_sei
-        elif self.options["SEI film resistance"] == "distributed":
-            R_sei = self.phase_param.R_sei
-            L_sei = variables[f"{Domain} {phase_name}SEI thickness [m]"]
-            j_tot = variables[
-                f"Total {domain} electrode {phase_name}"
-                "interfacial current density variable [A.m-2]"
-            ]
-
-            # Override print_name
-            j_tot.print_name = "j_tot"
-
-            eta_sei = -j_tot * L_sei * R_sei
-            if self.size_distribution and eta_r.domains["secondary"] != [
-                f"{domain} electrode"
-            ]:
-                eta_sei = pybamm.x_average(eta_sei)
-        else:
-            eta_sei = pybamm.Scalar(0)
-        eta_r += eta_sei
-
-        # Broadcast j0 to match eta_r's domain, if necessary
-        if j0.secondary_domain == ["current collector"] and eta_r.secondary_domain == [
-            f"{domain} electrode"
-        ]:
-            j0 = pybamm.SecondaryBroadcast(j0, [f"{domain} electrode"])
 
         # Get number of electrons in reaction
         ne = self._get_number_of_electrons_in_reaction()
@@ -181,6 +147,44 @@ class BaseKinetics(BaseInterface):
         else:
             T = variables[f"{Domain} electrode temperature [K]"]
             u = variables[f"{Domain} electrode interface utilisation"]
+
+
+        # Add SEI resistance
+        if self.options.electrode_types[domain] == "planar":
+            R_sei = self.phase_param.R_sei(T)
+            L_sei = variables[f"{Domain} {phase_name}SEI thickness [m]"]  # on interface
+            eta_sei = -j_tot_av * L_sei * R_sei
+        elif self.options["SEI film resistance"] == "average":
+            R_sei = self.phase_param.R_sei(T)
+            L_sei_av = variables[f"X-averaged {domain} {phase_name}SEI thickness [m]"]
+            eta_sei = -j_tot_av * L_sei_av * R_sei
+        elif self.options["SEI film resistance"] == "distributed":
+            R_sei = self.phase_param.R_sei(T)
+            L_sei = variables[f"{Domain} {phase_name}SEI thickness [m]"]
+            j_tot = variables[
+                f"Total {domain} electrode {phase_name}"
+                "interfacial current density variable [A.m-2]"
+            ]
+
+            # Override print_name
+            j_tot.print_name = "j_tot"
+
+            if self.size_distribution and R_sei.domain == ["current collector"]:
+                R_sei = pybamm.PrimaryBroadcast(R_sei, [f"{domain} electrode"])
+            eta_sei = -j_tot * L_sei * R_sei
+            if self.size_distribution and eta_r.domains["secondary"] != [
+                f"{domain} electrode"
+            ]:
+                eta_sei = pybamm.x_average(eta_sei)
+        else:
+            eta_sei = pybamm.Scalar(0)
+        eta_r += eta_sei
+
+        # Broadcast j0 to match eta_r's domain, if necessary
+        if j0.secondary_domain == ["current collector"] and eta_r.secondary_domain == [
+            f"{domain} electrode"
+        ]:
+            j0 = pybamm.SecondaryBroadcast(j0, [f"{domain} electrode"])
 
         # Update j, except in the "distributed SEI resistance" model, where j will be
         # found by solving an algebraic equation.
