@@ -384,7 +384,6 @@ class ParticleLithiumIonParameters(BaseParameters):
             f"{pref}SEI reaction exchange current density [A.m-2]"
         )
 
-        self.R_sei = pybamm.Parameter(f"{pref}SEI resistivity [Ohm.m]")
         self.D_sol = pybamm.Parameter(f"{pref}SEI solvent diffusivity [m2.s-1]")
         self.c_sol = pybamm.Parameter(f"{pref}Bulk solvent concentration [mol.m-3]")
         self.U_sei = pybamm.Parameter(f"{pref}SEI open-circuit potential [V]")
@@ -706,6 +705,14 @@ class ParticleLithiumIonParameters(BaseParameters):
             f"{self.phase_prefactor}Exchange-current density for plating [A.m-2]",
             inputs,
             post_processor=regulariser,
+        )
+
+    def R_sei(self, T):
+        """Dimensional SEI resistivity [Ohm.m]."""
+        Domain = self.domain.capitalize()
+        inputs = {f"{Domain} electrode temperature [K]": T}
+        return pybamm.FunctionParameter(
+            f"{self.phase_prefactor}SEI resistivity [Ohm.m]", inputs
         )
 
     def dead_lithium_decay_rate(self, L_sei):

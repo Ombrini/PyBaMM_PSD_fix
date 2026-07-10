@@ -58,7 +58,10 @@ class SEIThickness(BaseModel):
                     "surface area to volume ratio [m-1]"
                 ]
                 c_to_L = phase_param.V_bar_sei / a
-            R_sei = phase_param.R_sei
+            T = variables[f"{Domain} electrode temperature [K]"]
+            if self.reaction_loc == "interface":
+                T = pybamm.boundary_value(T, "right")
+            R_sei = phase_param.R_sei(T)
 
         if self.reaction_loc == "interface":
             # c_sei is an interfacial quantity [mol.m-2]
@@ -72,14 +75,15 @@ class SEIThickness(BaseModel):
             if self.size_distribution:
                 L_sei_sav = pybamm.size_average(L_sei)  # size-averaged SEI thickness
                 L_sei_xav = pybamm.x_average(L_sei_sav)  # x-averaged SEI thickness
+                SEI_resistance = L_sei_xav * R_sei
             else:
                 L_sei_xav = pybamm.x_average(L_sei)  # x-averaged SEI thickness
+                SE_resistance = pybamm.x_average(L_sei * R_sei)
             L_sei_av = pybamm.yz_average(L_sei_xav)  # volume-averaged SEI thickness
 
             variables.update(
                 {
-                    f"X-averaged {self.domain} electrode resistance [Ohm.m2]": L_sei_xav
-                    * R_sei,
+                    f"X-averaged {self.domain} electrode resistance [Ohm.m2]": SEI_resistance,
                 }
             )
         # Thickness variables are handled slightly differently for SEI on cracks

@@ -163,6 +163,16 @@ class TestLithiumIonParameterValues:
         values.evaluate(param.D_e(c_e_test, T_test))
         values.evaluate(param.kappa_e(c_e_test, T_test))
 
+    def test_sei_resistivity_as_function_of_temperature(self):
+        values = pybamm.lithium_ion.BaseModel().default_parameter_values
+        param = pybamm.LithiumIonParameters()
+        T = pybamm.Scalar(298.15)
+
+        np.testing.assert_allclose(values.evaluate(param.n.prim.R_sei(T)), 200000.0)
+
+        values.update({"SEI resistivity [Ohm.m]": lambda T: 2 * T})
+        np.testing.assert_allclose(values.evaluate(param.n.prim.R_sei(T)), 600.0)
+
     def test_sigma_as_function_of_stoichiometry(self):
         values = pybamm.lithium_ion.BaseModel().default_parameter_values
         param = pybamm.LithiumIonParameters()

@@ -118,7 +118,7 @@ class SEIGrowth(BaseModel):
 
         L_sei = variables[f"{Domain} {self.reaction_name}thickness [m]"]
 
-        R_sei = phase_param.R_sei
+        R_sei = phase_param.R_sei(T)
         eta_SEI = delta_phi - phase_param.U_sei - j * L_sei * R_sei
         # Thermal prefactor for reaction, interstitial and EC models
         F_RT = self.param.F / (self.param.R * T)

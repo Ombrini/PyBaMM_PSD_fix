@@ -289,6 +289,23 @@ class BaseUnitTestLithiumIon:
         }
         self.check_well_posedness(options)
 
+    @pytest.mark.parametrize("sei_option", ["constant", "reaction limited"])
+    def test_temperature_dependent_sei_resistivity_processes(self, sei_option):
+        options = {
+            "SEI": sei_option,
+            "SEI film resistance": "average",
+            "thermal": "lumped",
+        }
+        model = self.model(options)
+        parameter_values = model.default_parameter_values.copy()
+
+        def R_sei(T):
+            return 200000 * (1 + 0.01 * (T - 298.15))
+
+        parameter_values.update({"SEI resistivity [Ohm.m]": R_sei})
+        processed_model = parameter_values.process_model(model, inplace=False)
+        processed_model.check_well_posedness()
+
     def test_well_posed_asymmetric_sei_reaction_limited_average_film_resistance(self):
         options = {
             "SEI": "reaction limited (asymmetric)",
